@@ -14,6 +14,7 @@ contract FeedBase is MakerUser
         uint timestamp;
         uint expiration;
         uint cost;
+        ERC20 token;
         bool paid;
     }
 
@@ -38,9 +39,10 @@ contract FeedBase is MakerUser
         entry.paid = false;
         FeedUpdate( id );
     }
-    function setFeedCost(uint64 id, uint cost)
+    function setFeedCost(uint64 id, ERC20 token, uint cost)
              feed_owner( id )
     {
+        _feeds[id].token = token;
         _feeds[id].cost = cost;
         FeedUpdate( id );
     }
@@ -66,7 +68,7 @@ contract FeedBase is MakerUser
             throw;
         }
         if( !entry.paid ) {
-            transferFrom(msg.sender, this, entry.cost, "DAI");
+            entry.token.transferFrom(msg.sender, this, entry.cost);
             entry.paid = true;
         }
         return entry.value;

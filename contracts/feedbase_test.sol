@@ -28,10 +28,22 @@ contract FeedBaseTest is Test
         var value = t1.doGet(feed1);
         assertEq32(value, 0x42);
     }
+    function testSetGetBogusToken() {
+        fb.setFeed(feed1, 0x42, block.timestamp+1);
+        fb.setFeedCost(feed1, ERC20(0x12345678), 100);
+        var value = t1.doGet(feed1);
+        assertEq32(value, 0x42);
+    }
+    function testSetGetFreeBogusToken() {
+        fb.setFeed(feed1, 0x42, block.timestamp+1);
+        fb.setFeedCost(feed1, ERC20(0x12345678), 0);
+        var value = t1.doGet(feed1);
+        assertEq32(value, 0x42);
+    }
     function testSetGetPaid() {
         fb.setFeed(feed1, 0x42, block.timestamp+1);
-        fb.setFeedCost(feed1, 100);
         var DAI = _M.getToken("DAI");
+        fb.setFeedCost(feed1, DAI, 100);
         DAI.transfer(t1, 100);
         t1._target(DAI);
         DSToken(t1).approve(fb, 100);
@@ -40,8 +52,14 @@ contract FeedBaseTest is Test
         assertEq32(value, 0x42);
     }
     function testFailSetGetPaid() {
-        fb.setFeedCost(feed1, 100);
-        var value = t1.doGet(feed1);
+        fb.setFeed(feed1, 0x42, block.timestamp+1);
+        var DAI = _M.getToken("DAI");
+        fb.setFeedCost(feed1, DAI, 100);
+        DAI.transfer(t1, 99);
+        t1._target(DAI);
+        DSToken(t1).approve(fb, 100);
+        t1._target(fb);
+        t1.doGet(feed1);
     }
     function testFailGetExpiredFeed() {
         fb.setFeed(feed1, 0x42, block.timestamp-1);
@@ -55,7 +73,8 @@ contract FeedBaseTest is Test
     event FeedUpdate( uint64 indexed id );
     function testEvents() {
         expectEventsExact(fb);
-        fb.setFeedCost(feed1, 0);
+        var DAI = _M.getToken("DAI");
+        fb.setFeedCost(feed1, DAI, 0);
         FeedUpdate(feed1);
         fb.setFeed(feed1, 0x42, block.timestamp+1);
         FeedUpdate(feed1);
